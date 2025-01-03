@@ -5,11 +5,12 @@ const verifyToken = require('../verifyToken')
 const Comment = require('../models/Comment')
 
 
+
 // create
 router.post("/create", verifyToken, async(req,res) => {
     try{
 
-        const newComment = new (req.body)
+        const newComment = new Comment(req.body);
         const savedComment = await newComment.save()
         res.status(200).json(savedComment)
     }

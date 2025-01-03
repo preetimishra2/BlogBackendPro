@@ -33,6 +33,7 @@ router.put("/:id", verifyToken, async (req, res) => {
     }
 })
 
+
 // delete
 router.delete("/:id", verifyToken, async (req, res) => {
     try {
@@ -89,7 +90,15 @@ router.get("user/userId", async(req,res) => {
         res.status(500).json(err)
     }
 })
-
+router.get("/user/:userId", async (req, res) => {
+    try {
+      const posts = await Post.find({ userId: req.params.userId });
+      res.status(200).json(posts);
+    } catch (err) {
+      res.status(500).json(err);
+    }
+  });
+  
 
 
 //! how many ways we are going to use post 
