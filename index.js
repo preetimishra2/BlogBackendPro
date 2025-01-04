@@ -4,7 +4,11 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const multer = require("multer");
 const path = require("path");
+const fs = require("fs");
 const cookieParser = require("cookie-parser");
+const morgan = require("morgan");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 const Post = require("./models/Post"); // Ensure the Post model is imported
 
 // Import Routes
@@ -20,12 +24,28 @@ dotenv.config();
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
+app.use(helmet()); // Add security headers
+if (process.env.NODE_ENV === "development") {
+  app.use(morgan("dev")); // Log requests in development
+}
+
+// Ensure `images` folder exists
+if (!fs.existsSync("images")) {
+  fs.mkdirSync("images");
+}
 app.use("/images", express.static(path.join(__dirname, "/images")));
+
+// Rate Limiting
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+});
+app.use("/api", apiLimiter); // Apply rate limiting to all API routes
 
 // CORS Configuration
 const allowedOrigins = [
-  "http://localhost:3000", 
-  "https://blogprofrontend.onrender.com"
+  "http://localhost:3000",
+  "https://blogprofrontend.onrender.com",
 ];
 
 const corsOptions = {
@@ -42,16 +62,20 @@ app.use(cors(corsOptions));
 
 // Connect to MongoDB
 const connectDB = async () => {
-  try {
-    await mongoose.connect(process.env.MONGO_URL, {
-      // No need for useNewUrlParser or useUnifiedTopology
-    });
-    console.log("Database is connected successfully!");
-  } catch (err) {
-    console.error("Error in database connection: ", err);
+  let retries = 5;
+  while (retries) {
+    try {
+      await mongoose.connect(process.env.MONGO_URL);
+      console.log("Database connected successfully!");
+      break;
+    } catch (err) {
+      console.error("Error connecting to the database:", err);
+      retries -= 1;
+      console.log(`Retries left: ${retries}`);
+      await new Promise((resolve) => setTimeout(resolve, 5000)); // Retry after 5 seconds
+    }
   }
 };
-
 
 // Routes
 app.use("/api/auth", authRoute);
@@ -77,8 +101,6 @@ app.post("/api/upload", upload.single("file"), (req, res) => {
       return res.status(400).json("No file uploaded.");
     }
     res.status(200).json(req.file.filename);
-    console.log(req.body); // Log request body
-    console.log(req.file); // Log file details
   } catch (err) {
     res.status(500).json("Error uploading file.");
   }
@@ -112,34 +134,3 @@ app.listen(PORT, () => {
   connectDB();
   console.log(`App is running on port ${PORT}`);
 });
-
-//! Models
-
-//* users
-// username
-// password
-// email
-// bio
-// timestamps
-
-//* post
-// title
-// desc
-// photo
-// username
-// userid
-// categories
-// timestamps
-
-//* comments
-// comment
-// author
-// postID
-// userID
-// timestamp
-
-//! Routes
-// auth --> signup --> login
-// users --> data
-// posts --> blog data
-// comments --> user blog data and the comment data
