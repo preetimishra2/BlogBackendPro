@@ -21,6 +21,9 @@ const commentRoute = require("./routes/comments");
 const app = express();
 dotenv.config();
 
+// Set trust proxy to 1 to handle X-Forwarded-For header in production environments
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
