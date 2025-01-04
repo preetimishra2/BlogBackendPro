@@ -1,22 +1,27 @@
-const jwt = require('jsonwebtoken')
+const jwt = require('jsonwebtoken');
 
-const verifyToken=(req,res,next) => {
-    const token = req.cookies.token
+const verifyToken = (req, res, next) => {
+    // Get token from cookies
+    const token = req.cookies.token;
 
-    if(!token) {
-        return res.status(401).json("you are not authenticated")
+    // If no token is found, return an authentication error
+    if (!token) {
+        return res.status(401).json("You are not authenticated");
     }
 
-    jwt.verify(token, process.env.SECRET, async(err, data) => {
-if(err) {
-    return res.status(403).json("Token is not valid")
-}
+    // Verify the token
+    jwt.verify(token, process.env.SECRET, async (err, data) => {
+        if (err) {
+            console.error("Token verification failed:", err); // Log the error
+            return res.status(403).json("Token is not valid");
+        }
 
-req.userId= data._id
+        // Attach the user data from the token payload to the request object
+        req.userId = data._id;
 
-next()
-    })
+        // Proceed to the next middleware/route handler
+        next();
+    });
+};
 
-}
-
-module.exports = verifyToken
+module.exports = verifyToken;

@@ -30,10 +30,11 @@ if (process.env.NODE_ENV === "development") {
 }
 
 // Ensure `images` folder exists
-if (!fs.existsSync("images")) {
-  fs.mkdirSync("images");
+const imagesFolder = "images";
+if (!fs.existsSync(imagesFolder)) {
+  fs.mkdirSync(imagesFolder);
 }
-app.use("/images", express.static(path.join(__dirname, "/images")));
+app.use("/images", express.static(path.join(__dirname, imagesFolder)));
 
 // Rate Limiting
 const apiLimiter = rateLimit({
@@ -83,17 +84,27 @@ app.use("/api/users", userRoute);
 app.use("/api/posts", postRoute);
 app.use("/api/comments", commentRoute);
 
-// Image Upload
+// Image Upload (File Validation)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "images");
+    cb(null, imagesFolder);
   },
   filename: (req, file, cb) => {
     const uniqueName = Date.now() + path.extname(file.originalname);
     cb(null, uniqueName);
   },
 });
-const upload = multer({ storage });
+
+const fileFilter = (req, file, cb) => {
+  // Accept only image files
+  const validImageTypes = /jpeg|jpg|png|gif/;
+  if (!validImageTypes.test(path.extname(file.originalname).toLowerCase())) {
+    return cb(new Error("Invalid file type. Only JPG, JPEG, PNG, GIF are allowed."), false);
+  }
+  cb(null, true);
+};
+
+const upload = multer({ storage, fileFilter });
 
 app.post("/api/upload", upload.single("file"), (req, res) => {
   try {
