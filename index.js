@@ -45,21 +45,26 @@ app.use("/api", apiLimiter); // Apply rate limiting to all API routes
 
 // CORS Configuration
 const allowedOrigins = [
-  "http://localhost:3000",
-  "https://blogprofrontend.onrender.com",
+  "http://localhost:3000",  // Frontend on localhost
+  "https://blogprofrontend.onrender.com",  // Your deployed frontend URL
 ];
 
 const corsOptions = {
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
+      callback(null, true);  // Allow request
     } else {
-      callback(new Error("Not allowed by CORS"));
+      callback(new Error("Not allowed by CORS"));  // Deny request
     }
   },
-  credentials: true,
+  credentials: true,  // Allow cookies to be sent and received
 };
-app.use(cors(corsOptions));
+
+// Apply CORS to API routes
+app.use("/api", cors(corsOptions));
+
+// Apply CORS to `/images` route as well (for image serving)
+app.use("/images", cors(corsOptions));  // Allow images from allowed origins
 
 // Connect to MongoDB
 const connectDB = async () => {
