@@ -25,8 +25,7 @@ app.use("/images", express.static(path.join(__dirname, "/images")));
 // CORS Configuration
 const allowedOrigins = [
   "http://localhost:3000", 
-  "https://your-production-domain.com",
-  "https://your-staging-domain.com"
+  "https://blogprofrontend.onrender.com"
 ];
 
 const corsOptions = {
