@@ -66,16 +66,26 @@ const corsOptions = {
 app.use("/api", cors(corsOptions));
 
 // Updated CORS and Static File Serving
+// Updated CORS and Static File Serving
 app.use(
   "/images",
   (req, res, next) => {
-    res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
-    res.header("Access-Control-Allow-Credentials", "true");
-    res.header("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS");
-    res.header("Access-Control-Allow-Headers", "Content-Type, Accept");
+    const origin = req.headers.origin; // Get the origin from the request
+    const allowedOrigins = [
+      "http://localhost:3000", 
+      "https://blogprofrontend.onrender.com"
+    ];
+
+    if (allowedOrigins.includes(origin)) {
+      res.header("Access-Control-Allow-Origin", origin); // Set specific origin
+      res.header("Access-Control-Allow-Credentials", "true");
+      res.header("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS");
+      res.header("Access-Control-Allow-Headers", "Content-Type, Accept");
+    }
+
     next();
   },
-  express.static(path.join(__dirname, imagesFolder))
+  express.static(path.join(__dirname, "images"))
 );
 
 // Connect to MongoDB
