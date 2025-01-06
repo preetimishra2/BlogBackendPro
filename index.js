@@ -37,7 +37,11 @@ const imagesFolder = "images";
 if (!fs.existsSync(imagesFolder)) {
   fs.mkdirSync(imagesFolder);
 }
-app.use("/images", express.static(path.join(__dirname, imagesFolder)));
+app.use(
+  "/images",
+  cors(corsOptions), // Apply CORS
+  express.static(path.join(__dirname, imagesFolder))
+);
 
 // Rate Limiting
 const apiLimiter = rateLimit({
