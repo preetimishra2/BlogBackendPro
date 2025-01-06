@@ -21,15 +21,15 @@ const commentRoute = require("./routes/comments");
 const app = express();
 dotenv.config();
 
-// Set trust proxy to 1 to handle X-Forwarded-For header in production environments
 app.set("trust proxy", 1);
 
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
-app.use(helmet()); // Add security headers
+app.use(helmet());
+
 if (process.env.NODE_ENV === "development") {
-  app.use(morgan("dev")); // Log requests in development
+  app.use(morgan("dev"));
 }
 
 // Ensure `images` folder exists
@@ -40,67 +40,64 @@ if (!fs.existsSync(imagesFolder)) {
 
 // Rate Limiting
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100,
 });
-app.use("/api", apiLimiter); // Apply rate limiting to all API routes
+app.use("/api", apiLimiter);
 
 // CORS Configuration
 const allowedOrigins = [
-  "http://localhost:3000", // Frontend on localhost
-  "https://blogprofrontend.onrender.com", // Your deployed frontend URL
+  "http://localhost:3000",
+  "https://blogprofrontend.onrender.com",
 ];
 
 const corsOptions = {
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true); // Allow request
+      callback(null, true);
     } else {
-      callback(new Error("Not allowed by CORS")); // Deny request
+      callback(new Error("Not allowed by CORS"));
     }
   },
-  credentials: true, // Allow cookies to be sent and received
+  credentials: true,
 };
 
-// Apply CORS to API routes
-app.use("/api", cors(corsOptions));
+// Apply CORS
+app.use(cors(corsOptions));
 
-// Updated CORS and Static File Serving
-// Updated CORS and Static File Serving
+// Static File Serving with Headers
 app.use(
   "/images",
-  (req, res, next) => {
-    const origin = req.headers.origin; // Get the origin from the request
-    const allowedOrigins = [
-      "http://localhost:3000", 
-      "https://blogprofrontend.onrender.com"
-    ];
-
-    if (allowedOrigins.includes(origin)) {
-      res.header("Access-Control-Allow-Origin", origin); // Set specific origin
-      res.header("Access-Control-Allow-Credentials", "true");
-      res.header("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS");
-      res.header("Access-Control-Allow-Headers", "Content-Type, Accept");
-    }
-
-    next();
-  },
-  express.static(path.join(__dirname, "images"))
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+    methods: "GET,HEAD,OPTIONS",
+  }),
+  express.static(path.join(__dirname, "images"), {
+    setHeaders: (res) => {
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept");
+    },
+  })
 );
 
-// Connect to MongoDB
+// MongoDB Connection
 const connectDB = async () => {
   let retries = 5;
   while (retries) {
     try {
-      await mongoose.connect(process.env.MONGO_URL);
+      await mongoose.connect(process.env.MONGO_URL, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+      });
       console.log("Database connected successfully!");
       break;
     } catch (err) {
-      console.error("Error connecting to the database:", err);
+      console.error("Error connecting to the database:", err.message);
       retries -= 1;
       console.log(`Retries left: ${retries}`);
-      await new Promise((resolve) => setTimeout(resolve, 5000)); // Retry after 5 seconds
+      await new Promise((resolve) => setTimeout(resolve, 5000));
     }
   }
 };
@@ -111,7 +108,7 @@ app.use("/api/users", userRoute);
 app.use("/api/posts", postRoute);
 app.use("/api/comments", commentRoute);
 
-// Image Upload (File Validation)
+// File Upload Configuration
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, imagesFolder);
@@ -123,7 +120,6 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  // Accept only image files
   const validImageTypes = /jpeg|jpg|png|gif/;
   if (!validImageTypes.test(path.extname(file.originalname).toLowerCase())) {
     return cb(new Error("Invalid file type. Only JPG, JPEG, PNG, GIF are allowed."), false);
@@ -131,17 +127,34 @@ const fileFilter = (req, file, cb) => {
   cb(null, true);
 };
 
-const upload = multer({ storage, fileFilter });
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 }, // Limit file size to 5MB
+});
 
 app.post("/api/upload", upload.single("file"), (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json("No file uploaded.");
     }
+    console.log("Uploaded File Path:", req.file.path);
     res.status(200).json(req.file.filename);
   } catch (err) {
+    console.error("Error during file upload:", err);
     res.status(500).json("Error uploading file.");
   }
+});
+
+// Error Handling Middleware
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    return res.status(400).json({ error: `Multer error: ${err.message}` });
+  }
+  if (err) {
+    return res.status(500).json({ error: "An internal server error occurred." });
+  }
+  next();
 });
 
 // Update Post
@@ -152,10 +165,9 @@ app.put("/api/posts/:id", async (req, res) => {
       return res.status(404).json("Post not found.");
     }
 
-    // Update provided fields
     const updatedData = {
       ...req.body,
-      photo: req.body.photo || post.photo, // Retain old photo if none provided
+      photo: req.body.photo || post.photo,
     };
 
     const updatedPost = await Post.findByIdAndUpdate(req.params.id, updatedData, { new: true });
