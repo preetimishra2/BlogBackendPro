@@ -37,11 +37,7 @@ const imagesFolder = "images";
 if (!fs.existsSync(imagesFolder)) {
   fs.mkdirSync(imagesFolder);
 }
-app.use(
-  "/images",
-  cors(corsOptions), // Apply CORS
-  express.static(path.join(__dirname, imagesFolder))
-);
+
 
 // Rate Limiting
 const apiLimiter = rateLimit({
@@ -71,8 +67,11 @@ const corsOptions = {
 app.use("/api", cors(corsOptions));
 
 // Apply CORS to `/images` route as well (for image serving)
-app.use("/images", cors(corsOptions));  // Allow images from allowed origins
-
+app.use(
+  "/images",
+  cors(corsOptions), // Apply CORS
+  express.static(path.join(__dirname, imagesFolder))
+);
 // Connect to MongoDB
 const connectDB = async () => {
   let retries = 5;
