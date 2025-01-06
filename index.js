@@ -22,7 +22,7 @@ const app = express();
 dotenv.config();
 
 // Set trust proxy to 1 to handle X-Forwarded-For header in production environments
-app.set('trust proxy', 1);
+app.set("trust proxy", 1);
 
 // Middleware
 app.use(express.json());
@@ -38,7 +38,6 @@ if (!fs.existsSync(imagesFolder)) {
   fs.mkdirSync(imagesFolder);
 }
 
-
 // Rate Limiting
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -48,30 +47,37 @@ app.use("/api", apiLimiter); // Apply rate limiting to all API routes
 
 // CORS Configuration
 const allowedOrigins = [
-  "http://localhost:3000",  // Frontend on localhost
-  "https://blogprofrontend.onrender.com",  // Your deployed frontend URL
+  "http://localhost:3000", // Frontend on localhost
+  "https://blogprofrontend.onrender.com", // Your deployed frontend URL
 ];
 
 const corsOptions = {
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);  // Allow request
+      callback(null, true); // Allow request
     } else {
-      callback(new Error("Not allowed by CORS"));  // Deny request
+      callback(new Error("Not allowed by CORS")); // Deny request
     }
   },
-  credentials: true,  // Allow cookies to be sent and received
+  credentials: true, // Allow cookies to be sent and received
 };
 
 // Apply CORS to API routes
 app.use("/api", cors(corsOptions));
 
-// Apply CORS to `/images` route as well (for image serving)
+// Updated CORS and Static File Serving
 app.use(
   "/images",
-  cors(corsOptions), // Apply CORS
+  (req, res, next) => {
+    res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+    res.header("Access-Control-Allow-Credentials", "true");
+    res.header("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Accept");
+    next();
+  },
   express.static(path.join(__dirname, imagesFolder))
 );
+
 // Connect to MongoDB
 const connectDB = async () => {
   let retries = 5;
