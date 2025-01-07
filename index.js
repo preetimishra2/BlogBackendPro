@@ -173,26 +173,6 @@ app.use((err, req, res, next) => {
   next();
 });
 
-// Update Post Endpoint
-app.put("/api/posts/:id", async (req, res) => {
-  try {
-    const post = await Post.findById(req.params.id);
-    if (!post) {
-      return res.status(404).json("Post not found.");
-    }
-
-    const updatedData = {
-      ...req.body,
-      photo: req.body.photo || post.photo,
-    };
-
-    const updatedPost = await Post.findByIdAndUpdate(req.params.id, updatedData, { new: true });
-    res.status(200).json(updatedPost);
-  } catch (err) {
-    console.error("Error updating post:", err);
-    res.status(500).json("An error occurred while updating the post.");
-  }
-});
 
 // Start Server
 const PORT = process.env.PORT || 8000;
