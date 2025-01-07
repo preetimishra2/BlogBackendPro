@@ -28,6 +28,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(helmet());
 
+// Enable morgan logging in development mode
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
@@ -40,8 +41,8 @@ if (!fs.existsSync(imagesFolder)) {
 
 // Rate Limiting
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per `window`
 });
 app.use("/api", apiLimiter);
 
@@ -50,7 +51,6 @@ const allowedOrigins = [
   "http://localhost:3000",
   "https://blogprofrontend.onrender.com",
 ];
-
 const corsOptions = {
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) {
@@ -65,14 +65,9 @@ const corsOptions = {
 // Apply CORS
 app.use(cors(corsOptions));
 
-// Static File Serving with Headers
+// Serve Static Files from `/images`
 app.use(
   "/images",
-  cors({
-    origin: allowedOrigins,
-    credentials: true,
-    methods: "GET,HEAD,OPTIONS",
-  }),
   express.static(path.join(__dirname, "images"), {
     setHeaders: (res) => {
       res.setHeader("Access-Control-Allow-Origin", "*");
@@ -133,12 +128,12 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // Limit file size to 5MB
 });
 
+// Upload Endpoint
 app.post("/api/upload", upload.single("file"), (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json("No file uploaded.");
     }
-    console.log("Uploaded File Path:", req.file.path);
     res.status(200).json(req.file.filename);
   } catch (err) {
     console.error("Error during file upload:", err);
@@ -157,7 +152,7 @@ app.use((err, req, res, next) => {
   next();
 });
 
-// Update Post
+// Update Post Endpoint
 app.put("/api/posts/:id", async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
