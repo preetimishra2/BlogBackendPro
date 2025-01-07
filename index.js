@@ -26,7 +26,27 @@ app.set("trust proxy", 1);
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        baseUri: ["'self'"],
+        fontSrc: ["'self'", "https:", "data:"],
+        formAction: ["'self'"],
+        frameAncestors: ["'self'"],
+        imgSrc: ["'self'", "https:", "data:"], // Allow image loading from any secure source
+        objectSrc: ["'none'"],
+        scriptSrc: ["'self'"],
+        scriptSrcAttr: ["'none'"],
+        styleSrc: ["'self'", "https:", "'unsafe-inline'"],
+        upgradeInsecureRequests: [],
+      },
+    },
+    crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow cross-origin resource loading
+  })
+);
+
 
 // Enable morgan logging in development mode
 if (process.env.NODE_ENV === "development") {
@@ -71,8 +91,9 @@ app.use(
   express.static(path.join(__dirname, "images"), {
     setHeaders: (res) => {
       res.setHeader("Access-Control-Allow-Origin", "*");
-      res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
+      res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
       res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept");
+      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
     },
   })
 );
