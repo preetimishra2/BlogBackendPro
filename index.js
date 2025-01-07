@@ -196,7 +196,12 @@ app.put("/api/posts/:id", async (req, res) => {
 
 // Start Server
 const PORT = process.env.PORT || 8000;
-app.listen(PORT, () => {
-  connectDB();
-  console.log(`App is running on port ${PORT}`);
-});
+(async () => {
+    try {
+        await connectDB();
+        app.listen(PORT, () => console.log(`App is running on port ${PORT}`));
+    } catch (err) {
+        console.error("Failed to connect to the database. Exiting...");
+        process.exit(1);
+    }
+})();
